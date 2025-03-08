@@ -47,10 +47,12 @@ QString extractFilePathFromRequest(const QJsonObject &request)
 
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
-    const Settings::CodeCompletionSettings &completeSettings)
+    const Settings::CodeCompletionSettings &completeSettings,
+    LLMCore::IPromptProvider *promptProvider)
     : m_requestHandler(this)
     , m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
+    , m_promptProvider(promptProvider)
 {
     connect(
         &m_requestHandler,
@@ -182,8 +184,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
                                          : m_generalSettings.ccPreset1Template();
 
-    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
-        templateName);
+    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
 
     if (!promptTemplate) {
         LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
@@ -288,8 +289,7 @@ void LLMClientInterface::sendCompletionToClient(
     auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
                                          : m_generalSettings.ccPreset1Template();
 
-    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
-        templateName);
+    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
 
     QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
 
