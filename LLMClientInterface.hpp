@@ -22,6 +22,7 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
 #include <llmcore/ContextData.hpp>
 #include <llmcore/IPromptProvider.hpp>
@@ -46,6 +47,8 @@ public:
         const Settings::CodeCompletionSettings &completeSettings,
         LLMCore::IProviderRegistry &providerRegistry,
         LLMCore::IPromptProvider *promptProvider,
+        LLMCore::RequestHandlerBase &requestHandler,
+        Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
 
     Utils::FilePath serverDeviceTemplate() const override;
@@ -75,7 +78,8 @@ private:
     const Settings::GeneralSettings &m_generalSettings;
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     LLMCore::IProviderRegistry &m_providerRegistry;
-    LLMCore::RequestHandler m_requestHandler;
+    LLMCore::RequestHandlerBase &m_requestHandler;
+    Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;
 };

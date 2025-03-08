@@ -23,8 +23,6 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
-#include <texteditor/textdocument.h>
-
 #include "CodeHandler.hpp"
 #include "context/ContextManager.hpp"
 #include "context/DocumentContextReader.hpp"
@@ -51,12 +49,14 @@ LLMClientInterface::LLMClientInterface(
     LLMCore::IProviderRegistry &providerRegistry,
     LLMCore::IPromptProvider *promptProvider,
     LLMCore::RequestHandlerBase &requestHandler,
+    Context::IDocumentReader &documentReader,
     IRequestPerformanceLogger &performanceLogger)
     : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
     , m_providerRegistry(providerRegistry)
     , m_promptProvider(promptProvider)
     , m_requestHandler(requestHandler)
+    , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
 {
     connect(
@@ -268,21 +268,18 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
     QJsonObject position = doc["position"].toObject();
+    auto filePath = extractFilePathFromRequest(request);
 
-    Utils::FilePath filePath = Utils::FilePath::fromString(extractFilePathFromRequest(request));
-    TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        filePath);
-
-    if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+    auto documentInfo = m_documentReader.readDocument(filePath);
+    if (!documentInfo.document) {
+        LOG_MESSAGE("Error: Document is not available for" + filePath);
         return LLMCore::ContextData{};
     }
 
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
-    Context::DocumentContextReader reader(
-        textDocument->document(), textDocument->mimeType(), textDocument->filePath().toString());
+    Context::DocumentContextReader reader(documentInfo.document, documentInfo.mimeType, filePath);
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
